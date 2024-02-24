@@ -1,0 +1,44 @@
+# sudo apt install linuxptp ethtool -y
+
+----------------------------------------------------------------------------------------
+
+# nmcli device status
+# --------------------
+# DEVICE             TYPE      STATE                   CONNECTION         
+# enp58s0            ethernet  connected               Wired connection 1 
+
+# ethtool -T enp58s0
+# --------------------
+# Time stamping parameters for enp58s0:
+# Capabilities:
+# 	software-transmit
+#	software-receive
+#	software-system-clock
+# PTP Hardware Clock: none
+# Hardware Transmit Timestamp Modes: none
+# Hardware Receive Filter Modes: none
+
+# open new shell and setup master in software mode
+timedatectl set-ntp on
+sudo ptp4l -i enp58s0 -S -m
+
+# -------------------------------------------------------------------------------------
+
+# nmcli device status
+# ---------------------
+# DEVICE       TYPE      STATE      CONNECTION         
+# eth0         ethernet  connected  Wired connection 1 
+
+# ethtool -T eth0
+# ------------------
+# Time stamping parameters for eth0:
+# Capabilities:
+#	software-transmit     (SOF_TIMESTAMPING_TX_SOFTWARE)
+#	software-receive      (SOF_TIMESTAMPING_RX_SOFTWARE)
+#	software-system-clock (SOF_TIMESTAMPING_SOFTWARE)
+# PTP Hardware Clock: none
+# Hardware Transmit Timestamp Modes: none
+# Hardware Receive Filter Modes: none
+
+# for all other devices (jetson orin nano), setup as slaves in software mode
+sudo ptp4l -i eth0 -S -s -m

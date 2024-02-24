@@ -1,0 +1,83 @@
+{
+    "31384613": { 
+        "input": {
+            "zed": {
+                "type": "STREAM",
+                "configuration" : "127.0.0.1:30000"
+            },
+            "fusion": {
+                "type": "LOCAL_NETWORK",
+                "configuration": { 
+                    "ip": "127.0.0.1", 
+                    "port": 30000 
+                }
+            }
+        },
+        "world": {
+            "rotation": [ 
+                0,
+                0,
+                0
+            ],
+            "translation": [ 
+                0,
+                0,
+                0
+            ]
+        }
+    },
+    "32477028": { 
+        "input": {
+            "zed": {
+                "type": "STREAM",
+                "configuration" : "10.100.26.210:30000"
+            },
+            "fusion": {
+                "type": "LOCAL_NETWORK",
+                "configuration": { 
+                    "ip": "10.100.26.210", 
+                    "port": 30000 
+                }
+            }
+        },
+        "world": {
+            "rotation": [ 
+                0,
+                0,
+                0
+            ],
+            "translation": [ 
+                0,
+                0,
+                0
+            ]
+        }
+    },
+    "34562445": { 
+        "input": {
+            "zed": {
+                "type": "STREAM",
+                "configuration" : "10.100.27.41:30000"
+            },
+            "fusion": {
+                "type": "LOCAL_NETWORK",
+                "configuration": { 
+                    "ip": "10.100.27.41", 
+                    "port": 30000 
+                }
+            }
+        },
+        "world": {
+            "rotation": [ 
+                0,
+                0,
+                0
+            ],
+            "translation": [ 
+                0,
+                0,
+                0
+            ]
+        }
+    }
+}
