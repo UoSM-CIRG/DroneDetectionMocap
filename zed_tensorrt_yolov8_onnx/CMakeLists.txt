@@ -3,6 +3,7 @@ PROJECT(yolo_onnx_zed)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(OpenGL_GL_PREFERENCE GLVND)
 
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 
@@ -47,8 +48,8 @@ link_directories(${OpenCV_LIBRARY_DIRS})
 include_directories(/usr/local/cuda/include)
 link_directories(/usr/local/cuda/lib64)
 # tensorrt
-include_directories(/home/ubuntu/Desktop/nvidia-lib-src/TensorRT-8.6.1.6/include)
-link_directories(/home/ubuntu/Desktop/nvidia-lib-src/TensorRT-8.6.1.6/lib)
+#include_directories(/home/ubuntu/Desktop/nvidia-lib-src/TensorRT-8.6.1.6/include)
+#link_directories(/home/ubuntu/Desktop/nvidia-lib-src/TensorRT-8.6.1.6/lib)
 
 FILE(GLOB_RECURSE SRC_FILES src/*.c*)
 FILE(GLOB_RECURSE HDR_FILES include/*.h*)
