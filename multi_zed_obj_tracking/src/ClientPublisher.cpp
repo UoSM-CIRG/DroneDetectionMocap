@@ -9,20 +9,13 @@ ClientPublisher::~ClientPublisher()
     zed.close();
 }
 
-bool ClientPublisher::open(sl::InputType input, const std::string engine_name)
+bool ClientPublisher::open(sl::InitParameters param, const std::string engine_name)
 {
     // already running
     if (runner.joinable())
         return false;
 
-    sl::InitParameters init_parameters;
-    init_parameters.depth_mode = sl::DEPTH_MODE::ULTRA;
-    init_parameters.input = input;
-    if (input.getType() == sl::InputType::INPUT_TYPE::SVO_FILE)
-        init_parameters.svo_real_time_mode = true;
-    init_parameters.coordinate_units = sl::UNIT::METER;
-    init_parameters.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP;
-    auto state = zed.open(init_parameters);
+    auto state = zed.open(param);
     if (state != sl::ERROR_CODE::SUCCESS)
     {
         std::cout << "Error: " << state << std::endl;
@@ -56,19 +49,6 @@ bool ClientPublisher::open(sl::InputType input, const std::string engine_name)
         std::cerr << "Detector init failed!" << std::endl;
         return EXIT_FAILURE;
     }
-
-    // // define the body tracking parameters, as the fusion can does the tracking and fitting you don't need to enable them here, unless you need it for your app
-    // sl::BodyTrackingParameters body_tracking_parameters;
-    // body_tracking_parameters.detection_model = sl::BODY_TRACKING_MODEL::HUMAN_BODY_MEDIUM;
-    // body_tracking_parameters.body_format = sl::BODY_FORMAT::BODY_18;
-    // body_tracking_parameters.enable_body_fitting = false;
-    // body_tracking_parameters.enable_tracking = false;
-    // state = zed.enableBodyTracking(body_tracking_parameters);
-    // if (state != sl::ERROR_CODE::SUCCESS)
-    // {
-    //     std::cout << "Error: " << state << std::endl;
-    //     return false;
-    // }
 
     return true;
 }

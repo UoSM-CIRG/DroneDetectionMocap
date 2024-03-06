@@ -1,82 +1,70 @@
 {
-    "31384613": { 
+    "31384613": {
         "input": {
-            "zed": {
-                "type": "STREAM",
-                "configuration" : "127.0.0.1:30000"
-            },
             "fusion": {
-                "type": "LOCAL_NETWORK",
-                "configuration": { 
-                    "ip": "127.0.0.1", 
-                    "port": 30000 
-                }
+                "type": "INTRA_PROCESS"
+            },
+            "zed": {
+                "configuration": "31384613",
+                "type": "USB_SERIAL"
             }
         },
         "world": {
-            "rotation": [ 
-                0,
-                0,
-                0
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
             ],
-            "translation": [ 
-                0,
-                0,
-                0
+            "translation": [
+                0.0,
+                0.0,
+                0.0
             ]
         }
     },
-    "32477028": { 
+    "32477028": {
         "input": {
-            "zed": {
-                "type": "STREAM",
-                "configuration" : "10.100.26.210:30000"
-            },
             "fusion": {
-                "type": "LOCAL_NETWORK",
-                "configuration": { 
-                    "ip": "10.100.26.210", 
-                    "port": 30000 
-                }
+                "type": "INTRA_PROCESS"
+            },
+            "zed": {
+                "configuration": "10.100.26.64:30002",
+                "type": "STREAM"
             }
         },
         "world": {
-            "rotation": [ 
-                0,
-                0,
-                0
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
             ],
-            "translation": [ 
-                0,
-                0,
-                0
+            "translation": [
+                0.0,
+                0.0,
+                0.0
             ]
         }
     },
-    "34562445": { 
+    "34562445": {
         "input": {
-            "zed": {
-                "type": "STREAM",
-                "configuration" : "10.100.27.41:30000"
-            },
             "fusion": {
-                "type": "LOCAL_NETWORK",
-                "configuration": { 
-                    "ip": "10.100.27.41", 
-                    "port": 30000 
-                }
+                "type": "INTRA_PROCESS"
+            },
+            "zed": {
+                "configuration": "10.100.27.205:30004",
+                "type": "STREAM"
             }
         },
         "world": {
-            "rotation": [ 
-                0,
-                0,
-                0
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
             ],
-            "translation": [ 
-                0,
-                0,
-                0
+            "translation": [
+                0.0,
+                0.0,
+                0.0
             ]
         }
     }

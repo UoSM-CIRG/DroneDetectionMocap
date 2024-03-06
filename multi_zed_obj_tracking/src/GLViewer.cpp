@@ -222,31 +222,42 @@ sl::float3 newColor(float hh) {
     return clr;
 }
 
-// seperate camera and pc
-void GLViewer::updateCamera(int id, sl::Mat &view){
+// // seperate camera and pc
+// void GLViewer::updateCamera(int id, sl::Mat &view){
+//     std::lock_guard<std::mutex> lock(mtx);
+//     if (colors.find(id) == colors.end()) {
+//         float hh = uint_dist360(rng) / 60.f;
+//         colors[id] = newColor(hh);
+//     }
+
+//     if(view.isInit() && viewers.find(id) == viewers.end())
+//         viewers[id].initialize(view, colors[id]);
+// }
+
+// // seperate camera and pc
+// void GLViewer::updatePC(int id, sl::Mat &pc){
+//     std::lock_guard<std::mutex> lock(mtx);
+//     if (colors.find(id) == colors.end()) {
+//         float hh = uint_dist360(rng) / 60.f;
+//         colors[id] = newColor(hh);
+//     }
+
+//     if(pc.isInit() && point_clouds.find(id) == point_clouds.end())
+//         point_clouds[id].initialize(pc, colors[id]);
+    
+// }
+
+void GLViewer::updateFusion(int id, sl::Mat &view, sl::Mat &pc){
     std::lock_guard<std::mutex> lock(mtx);
     if (colors.find(id) == colors.end()) {
         float hh = uint_dist360(rng) / 60.f;
         colors[id] = newColor(hh);
     }
-
     if(view.isInit() && viewers.find(id) == viewers.end())
         viewers[id].initialize(view, colors[id]);
-    
-    
-}
-
-// seperate camera and pc
-void GLViewer::updatePC(int id, sl::Mat &pc){
-    std::lock_guard<std::mutex> lock(mtx);
-    if (colors.find(id) == colors.end()) {
-        float hh = uint_dist360(rng) / 60.f;
-        colors[id] = newColor(hh);
-    }
 
     if(pc.isInit() && point_clouds.find(id) == point_clouds.end())
         point_clouds[id].initialize(pc, colors[id]);
-    
     
 }
 

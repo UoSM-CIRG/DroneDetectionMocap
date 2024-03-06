@@ -231,9 +231,11 @@ public:
     bool isAvailable();
     void init(int argc, char **argv);
 
-    void updateCamera(int, sl::Mat &);
+    // void updateCamera(int, sl::Mat &);
 
-    void updatePC(int, sl::Mat &);
+    // void updatePC(int, sl::Mat &);
+
+    void updateFusion(int, sl::Mat &, sl::Mat &);
 
     void updateBodies(sl::Bodies &objs,std::map<sl::CameraIdentifier, sl::Bodies>& singldata, sl::FusionMetrics& metrics);
     

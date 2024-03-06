@@ -6,7 +6,6 @@
 #include <sl/Camera.hpp>
 #include "yolo.hpp"
 
-
 static inline cv::Mat preprocess_img(cv::Mat& img, int input_w, int input_h) {
     int w, h, x, y;
     float r_w = input_w / (img.cols * 1.0);
@@ -135,6 +134,8 @@ inline bool readFile(std::string filename, std::vector<uint8_t> &file_content) {
     file_content = std::vector<uint8_t>((std::istreambuf_iterator<char>(instream)), std::istreambuf_iterator<char>());
     return false;
 }
+
+
 
 #endif  // TRTX_YOLOV5_UTILS_H_
 
