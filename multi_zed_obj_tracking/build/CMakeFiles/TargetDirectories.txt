@@ -1,3 +1,0 @@
-/home/ubuntu/Desktop/workspaces/DroneDetectionMocap/multi_zed_obj_tracking/build/CMakeFiles/multi_cam_obj_tracking.dir
-/home/ubuntu/Desktop/workspaces/DroneDetectionMocap/multi_zed_obj_tracking/build/CMakeFiles/edit_cache.dir
-/home/ubuntu/Desktop/workspaces/DroneDetectionMocap/multi_zed_obj_tracking/build/CMakeFiles/rebuild_cache.dir

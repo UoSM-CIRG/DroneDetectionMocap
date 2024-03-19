@@ -7,7 +7,6 @@
 
 #include "logging.h"
 #include "utils.h"
-#include "o3dutils.h"
 #include <NvInfer.h>
 
 using namespace nvinfer1;
@@ -99,7 +98,8 @@ int main(int argc, char **argv)
 
     // showing cmds
     std::cout << "Viewer Shortcuts\n"
-              << "\t- 'r': swicth on/off for raw skeleton display\n"
+              // << "\t- 'r': swicth on/off for raw skeleton display\n"
+              << "\t- 's': swicth on/off for 3D object detection bounding box display\n"
               << "\t- 'p': swicth on/off for live point cloud display\n"
               << "\t- 'c': swicth on/off point cloud display with flat color\n"
               << std::endl;
@@ -107,50 +107,40 @@ int main(int argc, char **argv)
     sl::FusionMetrics metrics;
     std::map<sl::CameraIdentifier, sl::Pose> poses;
     std::map<sl::CameraIdentifier, sl::Mat> views;
-    // std::map<sl::CameraIdentifier, sl::Mat> pointClouds;
-    std::vector<open3d::geometry::PointCloud> pointClouds;
+    std::map<sl::CameraIdentifier, sl::Objects> objects;
+    std::map<sl::CameraIdentifier, sl::Mat> pointClouds;
     sl::Resolution low_res(512, 360);
 
     // Set up a callback function for each client
     for (auto &client : clients)
     {
-        client.setCallback([&views](const uint64_t id, sl::Mat &updatedSl, sl::Objects &detectedObjects)
+        client.setCallback([&views, &objects](const uint64_t id, sl::Mat &updatedSl, sl::Objects &detectedObjects)
                            {
-            // std::cout << "Updating camera map from = "<< id << std::endl;
-            views[id] = updatedSl; });
+            // std::cout << "Camera callback at  " << id << std::endl;
+            views[id] = updatedSl;
+            objects[id] = detectedObjects; });
     }
-    // run the fusion as long as the viewer is available.
     while (ptr_viewer->isAvailable())
     {
-        // std::cout << "Processing main fusion loop" << std::endl;
-        // run the fusion process (which gather data from all camera, sync them)
+        // run the fusion process (which gather data from all camera, sync them and process them)
         if (ptr_fusion->process() == sl::FUSION_ERROR_CODE::SUCCESS)
         {
+            // for debug, you can retrieve the data send by each camera
             for (auto &id : cameras)
             {
                 sl::Pose pose;
                 if (ptr_fusion->getPosition(pose, sl::REFERENCE_FRAME::WORLD, id, sl::POSITION_TYPE::RAW) == sl::POSITIONAL_TRACKING_STATE::OK)
-                    poses.insert_or_assign(id, pose);
+                    ptr_viewer->setCameraPose(id.sn, pose.pose_data);
 
-                sl::Mat sl_pc;
-                auto state_pc = ptr_fusion->retrieveMeasure(sl_pc, id, sl::MEASURE::XYZBGRA, low_res);
+                auto state_pc = ptr_fusion->retrieveMeasure(pointClouds[id], id, sl::MEASURE::XYZBGRA, low_res);
                 if (state_pc == sl::FUSION_ERROR_CODE::SUCCESS)
-                {
-
-                }
+                    ptr_viewer->updateMultiCamera(id.sn, views[id], objects[id], pointClouds[id]);
             }
 
-            // auto it = views.find(id);
-            // if (it != views.end() && it->second.isInit())
-            //     ptr_viewer->updateCamera(id.sn, views[id]);
+            // get metrics about the fusion process for monitoring purposes
+            // fusion.getProcessMetrics(metrics);
         }
-        // rendering
-        // ptr_viewer->setCameraPose(poses);
-        // ptr_viewer->updateFusion();
-        // get metrics about the fusion process for monitoring purposes
-        // ptr_fusion->getProcessMetrics(metrics);
-        // update the 3D view
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        std::this_thread::sleep_for(std::chrono::microseconds(16));
     }
 
     ptr_viewer->exit();

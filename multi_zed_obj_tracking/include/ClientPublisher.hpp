@@ -16,7 +16,7 @@ public:
     ClientPublisher();
     ~ClientPublisher();
 
-    bool open(sl::InitParameters, const std::string engine_name);
+    bool open(sl::InitParameters &, const std::string);
     void start();
     void stop();
     void setStartSVOPosition(unsigned pos);

@@ -9,7 +9,7 @@ ClientPublisher::~ClientPublisher()
     zed.close();
 }
 
-bool ClientPublisher::open(sl::InitParameters param, const std::string engine_name)
+bool ClientPublisher::open(sl::InitParameters &param, const std::string engine_name)
 {
     // already running
     if (runner.joinable())
@@ -21,10 +21,8 @@ bool ClientPublisher::open(sl::InitParameters param, const std::string engine_na
         std::cout << "Error: " << state << std::endl;
         return false;
     }
-
-    // in most cases in body tracking setup, the cameras are static
+    // application assumes the camera is static:
     sl::PositionalTrackingParameters positional_tracking_parameters;
-    // in most cases for body detection application the camera is static:
     positional_tracking_parameters.set_as_static = true;
     state = zed.enablePositionalTracking(positional_tracking_parameters);
     if (state != sl::ERROR_CODE::SUCCESS)
@@ -36,8 +34,10 @@ bool ClientPublisher::open(sl::InitParameters param, const std::string engine_na
     // Custom OD
     sl::ObjectDetectionParameters detection_parameters;
     detection_parameters.enable_tracking = true;
-    detection_parameters.enable_segmentation = true; // designed to give person pixel mask
+    detection_parameters.enable_segmentation = true;
     detection_parameters.detection_model = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
+    // detection_parameters.instance_module_id = zed.getCameraInformation().serial_number;
+    state = zed.enableObjectDetection(detection_parameters);
     if (state != sl::ERROR_CODE::SUCCESS)
     {
         std::cout << "Error: " << state << std::endl;
@@ -58,9 +58,7 @@ void ClientPublisher::start()
     if (zed.isOpened())
     {
         running = true;
-        // the camera should stream its data so the fusion can subscibe to it to gather the detected body and others metadata needed for the process.
         zed.startPublishing();
-        // the thread can start to process the camera grab in background
         runner = std::thread(&ClientPublisher::work, this);
     }
 }
@@ -108,7 +106,7 @@ void ClientPublisher::work()
                 tmp.probability = it.prob;
                 tmp.label = (int)it.label;
                 tmp.bounding_box_2d = cvt(it.box);
-                tmp.is_grounded = ((int)it.label == 0); // Only the first class (person) is grounded, that is moving on the floor plane
+                // tmp.is_grounded = ((int)it.label == 0); // Only the first class (person) is grounded, that is moving on the floor plane
                 // others are tracked in full 3D space
                 objects_in.push_back(tmp);
             }
@@ -124,33 +122,17 @@ void ClientPublisher::work()
             }
 
             // Retrieve the tracked objects, with 2D and 3D attributes
+            // zed.retrieveObjects(objects, objectTracker_parameters_rt, zed.getCameraInformation().serial_number);
             zed.retrieveObjects(objects, objectTracker_parameters_rt);
             // Notify callback with updated data
             if (odCallback)
             {
                 // std::cout << "sending od data from camera = " << zed.getCameraInformation().serial_number << std::endl;
+                // std::cout << "objects size = " << objects.object_list.size() << std::endl;
                 odCallback(zed.getCameraInformation().serial_number, left_sl, objects);
             }
         }
     }
-    // sl::Bodies bodies;
-    // sl::BodyTrackingRuntimeParameters body_runtime_parameters;
-    // body_runtime_parameters.detection_confidence_threshold = 40;
-
-    // // in this sample we use a dummy thread to process the ZED data.
-    // // you can replace it by your own application and use the ZED like you use to, retrieve its images, depth, sensors data and so on.
-    // // as long as you call the grab function and the retrieveBodies (which runs the detection) the camera will be able to seamlessly transmit the data to the fusion module.
-    // while (running) {
-    //     if (zed.grab() == sl::ERROR_CODE::SUCCESS) {
-    //         /*
-    //         Your App
-
-    //         */
-
-    //         // just be sure to run the bodies detection
-    //         zed.retrieveBodies(bodies, body_runtime_parameters);
-    //     }
-    // }
 }
 
 void ClientPublisher::setStartSVOPosition(unsigned pos)
