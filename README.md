@@ -2,7 +2,7 @@
 
 ### Setup
 
-The calibrated_zed360.json gives good info on it.
+The **calibrated_zed360.json** file provides important information for setup:
 
 ```
 Zed2i -------------> Laptop <-----          
@@ -15,13 +15,13 @@ Zed2i ---> Jetson Orin Nano ------
         (10.100.27.205:30004)
 ```
 
-The is provided .onnx model, need to convert to tensorrt format yourself. Hardware and tensorrt version dependant.
+Utilize the provided .onnx model, but conversion to TensorRT format is required. Note that this conversion depends on hardware and TensorRT version. Refer to zed_tensorrt_yolov8_onnx for guidance.
 
-Look into zed_tensorrt_yolov8_onnx.
+Refer to setup_ptp.txt for camera stream synchronization instructions.
 
-Check out the setup_ptp.txt to sync camera stream.
+Run the following commands in each build folder:
 
-Go to each build folder and run following command.
+
 ```
 ./yolo_onnx_zed -s ../../model/exported/real_and_synthetic.onnx mixed.engine
 
@@ -30,9 +30,9 @@ Go to each build folder and run following command.
 
 ### Experiments
 
-Occasional glitches, clearly not good enough for real time application. 
+Occasional glitches observed, not suitable for real-time applications.
 
-Exported the raw data, removing the outlier fused data points and smoothen the overall plots give quite a good estimation. 
+After exporting raw data, removing outlier data points, and smoothing overall plots, there is quite a decent estimation.
 
 Check the full video
 
@@ -40,12 +40,11 @@ Check the full video
 
 ### TODO List:
 
-Lots of stuff but just summarize a few according to priority.
+Tasks according to priority:
 
-1. Stereolab Edge Deployment (how to scale it)
-2. Figure out how to run entire pipeline on GPU, GPU load is not maximized.
-3. Figure out Yolo obb, only position x,y,z now, need the orientation also.
-4. Synching unique id for objects from different camera, not all cameras assiging the same objects. (maybe simple nearest neighhbour?)
-5. Perform detection with pointclouds instead (thinking of Pointnet++)
-6. Multiple class label
- 
+    1. Deploy as Stereolab Edge Node and explore scalability.
+    2. Optimize entire pipeline for GPU processing to maximize GPU load.
+    3. Enhance Yolo object bounding box to include orientation in addition to position (x, y, z).
+    4. Sync unique IDs for objects from different cameras; consider using a simple nearest neighbor approach.
+    5. Explore detection using point clouds (consider Pointnet++).
+    6. Implement multi-class labeling.
