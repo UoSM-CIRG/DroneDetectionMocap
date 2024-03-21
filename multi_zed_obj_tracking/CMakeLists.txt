@@ -26,7 +26,7 @@ find_package(GLEW REQUIRED)
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 find_package(CUDA REQUIRED)
-find_package(Open3D REQUIRED)
+# find_package(Open3D REQUIRED)
 
 IF(NOT WIN32)
     SET(SPECIAL_OS_LIBS "pthread" "X11")
@@ -73,4 +73,5 @@ target_link_libraries(${PROJECT_NAME}
                         ${GLUT_LIBRARIES}
                         ${GLEW_LIBRARIES}
                         ${OpenCV_LIBRARIES}
-                        Open3D::Open3D)
+                        #Open3D::Open3D
+                        )

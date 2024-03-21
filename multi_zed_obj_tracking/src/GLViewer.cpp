@@ -126,7 +126,7 @@ void GLViewer::init(int argc, char **argv)
     glutInitWindowPosition(wnd_w * 0.05, wnd_h * 0.05);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 
-    glutCreateWindow("ZED| 3D View");
+    glutCreateWindow("ZED| 3D Drone Motion Capture View");
 
     GLenum err = glewInit();
     if (GLEW_OK != err)
@@ -235,24 +235,6 @@ sl::float4 newColor(float hh)
     return clr;
 }
 
-void GLViewer::updateCamera(int id, sl::Mat &view, sl::Mat &pc)
-{
-    mtx.lock();
-    if (colors.find(id) == colors.end())
-    {
-        float hh = uint_dist360(rng) / 60.f;
-        colors[id] = newColor(hh);
-    }
-
-    if (view.isInit() && viewers.find(id) == viewers.end())
-        viewers[id].initialize(view, colors[id]);
-
-    if (pc.isInit() && point_clouds.find(id) == point_clouds.end())
-        point_clouds[id].initialize(pc, colors[id]);
-
-    mtx.unlock();
-}
-
 void GLViewer::updateMultiCamera(int id, sl::Mat &view, sl::Objects &objects, sl::Mat &pc)
 {
     mtx.lock();
@@ -267,10 +249,84 @@ void GLViewer::updateMultiCamera(int id, sl::Mat &view, sl::Objects &objects, sl
 
     if (pc.isInit() && point_clouds.find(id) == point_clouds.end())
         point_clouds[id].initialize(pc, colors[id]);
-    
+
     if (!objects.object_list.empty())
         detections[id].initialize(objects, colors[id]);
 
+    mtx.unlock();
+}
+
+void GLViewer::updateFusion(std::vector<ZedRenderData> &renders, std::map<int, sl::Transform> &T_cam_world)
+{
+    mtx.lock();
+    hasDetection = false;
+    sl::float3 fused_position(0, 0, 0);
+    sl::float3 dimension(0, 0, 0);
+    float total_confidence = 0.0;
+    
+    // batch processing
+    std::vector<sl::float3> fused_pos_buffer;
+    std::vector<sl::float3> fused_dim_buffer;
+
+    int size = renders.size();
+    for (auto &render : renders)
+    {
+        if (colors.find(render.id) == colors.end())
+        {
+            float hh = uint_dist360(rng) / 60.f;
+            colors[render.id] = newColor(hh);
+            // std::cout << "color value = " << colors[render.id] << ", hh value = "<< hh << std::endl;
+        }
+
+        if (render.views.isInit() && viewers.find(render.id) == viewers.end())
+            viewers[render.id].initialize(render.views, colors[render.id]);
+
+        if (render.pcs.isInit() && point_clouds.find(render.id) == point_clouds.end())
+            point_clouds[render.id].initialize(render.pcs, colors[render.id]);
+
+        if (!render.objs.object_list.empty())
+        {
+            detections[render.id].initialize(render.objs, colors[render.id]);
+
+            auto obj_pos = render.objs.object_list.at(0).position;
+            // Check if transformation matrix for this camera exists
+            if (T_cam_world.find(render.id) != T_cam_world.end())
+            {
+                // Get the transformation matrix from camera frame to world frame
+                sl::Transform T_world_cam = T_cam_world[render.id];
+                sl::float3 aligned_pos = T_world_cam.getTranslation() + obj_pos * T_world_cam.getRotationMatrix();
+
+                // std::cout << "Original Frame position for " << render.id << " ( " << obj_pos.x << " , " << obj_pos.y << " , " << obj_pos.z << " )" << std::endl;
+                // std::cout << "Transformed position for " << render.id << " ( " << aligned_pos.x << " , " << aligned_pos.y << " , " << aligned_pos.z << " )" << std::endl;
+                auto normalized_conf = render.objs.object_list.at(0).confidence / 100;
+                fused_position += aligned_pos * normalized_conf;
+                dimension += render.objs.object_list.at(0).dimensions * normalized_conf;
+                total_confidence += normalized_conf;
+                hasDetection = true;
+            }
+            else
+            {
+                std::cerr << "Transformation matrix for camera " << render.id << " not found!" << std::endl;
+            }
+        }
+    }
+
+    if (hasDetection)
+    {
+        fused_position = fused_position / total_confidence;
+        dimension = dimension / total_confidence;
+        // auto now = std::chrono::system_clock::now();
+        // auto time_now = std::chrono::system_clock::to_time_t(now);
+        // auto time_info = std::localtime(&time_now);
+        // int minutes = time_info->tm_min;
+        // int seconds = time_info->tm_sec;
+        // int total_seconds = minutes * 60 + seconds;
+        // std::cout << total_seconds << ", " << fused_position.x << ", " << fused_position.y << ", " << fused_position.z << std::endl;
+        
+        // use bounding box points for the render
+        const sl::float4 fused_clr(1.0f, 1.0f, 1.0f, 1.0f);
+        fused_detections.initialize(fused_position, dimension, fused_clr);
+    }
     mtx.unlock();
 }
 
@@ -326,11 +382,8 @@ void GLViewer::setCameraPose(int id, sl::Transform pose)
 {
     mtx.lock();
     poses[id] = pose;
-    if (colors.find(id) == colors.end())
-    {
-        float hh = uint_dist360(rng) / 60.f;
-        colors[id] = newColor(hh);
-    }
+    // std::cout << "Camera: " << id << " Pos: " << pose.getTranslation().x << ", " << pose.getTranslation().y << ", " << pose.getTranslation().z << std::endl;
+    // std::cout << "Camera: " << id << " Rot: " << pose.getEulerAngles().x << ", " << pose.getEulerAngles().y << ", " << pose.getEulerAngles().z << std::endl;
     mtx.unlock();
 }
 
@@ -351,6 +404,9 @@ void GLViewer::update()
 
     if (keyStates_['s'] == KEY_STATE::UP)
         currentInstance_->show_object = !currentInstance_->show_object;
+
+    if (keyStates_['f'] == KEY_STATE::UP)
+        currentInstance_->show_fused_object = !currentInstance_->show_fused_object;
 
     // Rotate camera with mouse
     if (mouseButton_[MOUSE_BUTTON::LEFT])
@@ -393,6 +449,9 @@ void GLViewer::update()
     for (auto &it : detections)
         it.second.pushNewOD();
 
+    if (hasDetection)
+        fused_detections.pushNewOD();
+
     mtx.unlock();
     clearInputs();
 }
@@ -415,7 +474,6 @@ void GLViewer::draw()
     {
         sl::Transform pose_ = vpMatrix * poses[it.first];
         glUniformMatrix4fv(shader.MVP_Mat, 1, GL_FALSE, sl::Transform::transpose(pose_).m);
-        // std::cout << "Camera: " << it.first << " Pose: " << pose_.getTranslation().x << ", " << pose_.getTranslation().y << ", " << pose_.getTranslation().z << std::endl;
         viewers[it.first].frustum.draw();
     }
 
@@ -437,6 +495,9 @@ void GLViewer::draw()
             if (detections.find(it.first) != detections.end())
                 detections[it.first].draw(vpMatrix_world);
     }
+
+    if (show_fused_object && hasDetection)
+        fused_detections.draw(vpMatrix);
 }
 
 sl::float2 compute3Dprojection(sl::float3 &pt, const sl::Transform &cam, sl::Resolution wnd_size)
@@ -972,7 +1033,6 @@ GLchar *IMAGE_VERTEX_SHADER =
 
 CustomObjectDetection::CustomObjectDetection()
 {
-
 }
 
 CustomObjectDetection::~CustomObjectDetection()
@@ -982,7 +1042,7 @@ CustomObjectDetection::~CustomObjectDetection()
 
 void CustomObjectDetection::close()
 {
-    if (!objs.empty())
+    if (!objs.empty() || isInit)
     {
         objs.clear();
         BBox_edges.clear();
@@ -1008,6 +1068,38 @@ void CustomObjectDetection::initialize(sl::Objects &objects, sl::float4 clr_)
     BBox_faces.setDrawingType(GL_QUADS);
 }
 
+void CustomObjectDetection::initialize(sl::float3 origin, sl::float3 dim, sl::float4 clr_)
+{
+    clr = clr_;
+    BBox_edges.clear();
+    BBox_faces.clear();
+    auto half_dim = dim / 2;
+
+    // std::cout << "Position ( " << origin.x << " , " << origin.y << " , " << origin.z << " )" << std::endl;
+    // std::cout << "Dimension ( " << dim.x << " , " << dim.y << " , " << dim.z << " )" << std::endl;
+
+    // 8 bounding box points
+    // opengl coordinate system is X-RIGHT, Y-UP, Z-BACK
+    std::vector<sl::float3> bb_;
+    bb_.reserve(8);
+    bb_.push_back(sl::float3(origin.x - half_dim.x, origin.y - half_dim.y, origin.z + half_dim.z)); // --+
+    bb_.push_back(sl::float3(origin.x - half_dim.x, origin.y + half_dim.y, origin.z + half_dim.z)); // -++
+    bb_.push_back(sl::float3(origin.x + half_dim.x, origin.y + half_dim.y, origin.z + half_dim.z)); // +++
+    bb_.push_back(sl::float3(origin.x + half_dim.x, origin.y - half_dim.y, origin.z + half_dim.z)); // +-+
+    bb_.push_back(sl::float3(origin.x - half_dim.x, origin.y - half_dim.y, origin.z - half_dim.z)); // ---
+    bb_.push_back(sl::float3(origin.x - half_dim.x, origin.y + half_dim.y, origin.z - half_dim.z)); // -+-
+    bb_.push_back(sl::float3(origin.x + half_dim.x, origin.y + half_dim.y, origin.z - half_dim.z)); // ++-
+    bb_.push_back(sl::float3(origin.x + half_dim.x, origin.y - half_dim.y, origin.z - half_dim.z)); // +--
+
+    createBboxRendering(bb_, clr);
+
+    shader.it = Shader(VERTEX_SHADER, FRAGMENT_SHADER);
+    shader.MVP_Mat = glGetUniformLocation(shader.it.getProgramId(), "u_mvpMatrix");
+    BBox_edges.setDrawingType(GL_LINES);
+    BBox_faces.setDrawingType(GL_QUADS);
+    isInit = true;
+}
+
 void CustomObjectDetection::createBboxRendering(std::vector<sl::float3> &bbox, sl::float4 bbox_clr)
 {
     // First create top and bottom full edges
@@ -1022,7 +1114,7 @@ void CustomObjectDetection::createBboxRendering(std::vector<sl::float3> &bbox, s
 
 void CustomObjectDetection::pushNewOD()
 {
-    if (!objs.empty())
+    if (!objs.empty() || isInit)
     {
         BBox_edges.pushToGPU();
         BBox_faces.pushToGPU();
@@ -1031,7 +1123,7 @@ void CustomObjectDetection::pushNewOD()
 
 void CustomObjectDetection::draw(const sl::Transform &vp)
 {
-    if (!objs.empty())
+    if (!objs.empty() || isInit)
     {
         glUseProgram(shader.it.getProgramId());
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -1042,6 +1134,7 @@ void CustomObjectDetection::draw(const sl::Transform &vp)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         BBox_faces.draw();
         glUseProgram(0);
+        isInit = false;
     }
 }
 

@@ -70,6 +70,9 @@ public:
     void addTopFace(std::vector<sl::float3> &pts, sl::float4 clr);
     void addVerticalFaces(std::vector<sl::float3> &pts, sl::float4 clr);
 
+    // Sphere
+    void createSphere(sl::float3 origin);
+
     void pushToGPU();
     void clear();
 
@@ -121,6 +124,7 @@ public:
     // Initialize Opengl and Cuda buffers
     // Warning: must be called in the Opengl thread
     void initialize(sl::Objects &, sl::float4 clr);
+    void initialize(sl::float3 origin, sl::float3 dim, sl::float4 clr);
     // Push a new custom object detection
     // Warning: can be called from any thread but the mutex "mutexData" must be locked
     void pushNewOD();
@@ -138,6 +142,7 @@ private:
     std::vector<sl::ObjectData> objs;
     sl::float4 clr;
     void createBboxRendering(std::vector<sl::float3> &, sl::float4);
+    bool isInit = false;
 
     ShaderData shader;
 };
@@ -293,6 +298,17 @@ struct ObjectClassName
     sl::float4 color;
 };
 
+struct ZedRenderData
+{
+    int id;
+    sl::Mat views;
+    sl::Objects objs;
+    sl::Mat pcs;
+
+    ZedRenderData(int _id, const sl::Mat& _views, const sl::Objects& _objs, const sl::Mat& _pcs) 
+        : id(_id), views(_views), objs(_objs), pcs(_pcs) {}
+};
+
 // This class manages input events, window and Opengl rendering pipeline
 
 class GLViewer
@@ -303,10 +319,10 @@ public:
     bool isAvailable();
     void init(int argc, char **argv);
 
-    void updateCamera(int, sl::Mat &, sl::Mat &);
-
     void updateMultiCamera(int, sl::Mat &, sl::Objects &, sl::Mat &);
 
+    void updateFusion(std::vector<ZedRenderData> &, std::map<int, sl::Transform> &);
+    
     void setCameraPose(int, sl::Transform);
 
     unsigned char getKey()
@@ -338,6 +354,7 @@ private:
 
     bool available;
     bool drawBbox = false;
+    bool hasDetection = false;
 
     enum MOUSE_BUTTON
     {
@@ -376,21 +393,19 @@ private:
     std::map<int, sl::Transform> poses;
     std::map<int, CustomObjectDetection> detections;
 
-    // std::map<int, Simple3DObject> skeletons_raw;
     std::map<int, sl::float4> colors;
-    // std::map<int, sl::float3> colors_sk;
 
     std::vector<ObjectClassName> fusionStats;
 
     CameraGL camera_;
-    // Simple3DObject skeletons;
     Simple3DObject floor_grid;
+    CustomObjectDetection fused_detections;
 
     bool show_object = true;
+    bool show_fused_object = true;
     bool show_pc = true;
-    // bool show_raw = false;
     bool draw_flat_color = false;
-
+    
     std::uniform_int_distribution<uint32_t> uint_dist360;
     std::mt19937 rng;
 };

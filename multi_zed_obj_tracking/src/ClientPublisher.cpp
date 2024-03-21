@@ -36,7 +36,6 @@ bool ClientPublisher::open(sl::InitParameters &param, const std::string engine_n
     detection_parameters.enable_tracking = true;
     detection_parameters.enable_segmentation = true;
     detection_parameters.detection_model = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
-    // detection_parameters.instance_module_id = zed.getCameraInformation().serial_number;
     state = zed.enableObjectDetection(detection_parameters);
     if (state != sl::ERROR_CODE::SUCCESS)
     {
@@ -122,7 +121,6 @@ void ClientPublisher::work()
             }
 
             // Retrieve the tracked objects, with 2D and 3D attributes
-            // zed.retrieveObjects(objects, objectTracker_parameters_rt, zed.getCameraInformation().serial_number);
             zed.retrieveObjects(objects, objectTracker_parameters_rt);
             // Notify callback with updated data
             if (odCallback)

@@ -11,6 +11,29 @@
 
 using namespace nvinfer1;
 
+std::map<int, sl::Transform> initCameraTransformMatrices(std::map<int, sl::Transform> &tfs)
+{
+    std::map<int, sl::Transform> T_cam_world;
+
+    bool is_world_set = false;
+    int first_index = 0;
+    // Iterate over camera poses
+    for (auto &tf : tfs)
+    {
+        if (!is_world_set)
+        {
+            T_cam_world[tf.first] = sl::Transform::identity();
+            first_index = tf.first;
+            is_world_set = true;
+        }
+        else
+        {
+            T_cam_world[tf.first] = tf.second * T_cam_world[first_index];
+        }
+    }
+    return T_cam_world;
+}
+
 int main(int argc, char **argv)
 {
 
@@ -39,6 +62,7 @@ int main(int argc, char **argv)
 
     // Check if the ZED camera should run within the same process or if they are running on the edge.
     std::vector<ClientPublisher> clients(configurations.size());
+
     int id_ = 0;
     for (auto conf : configurations)
     {
@@ -98,18 +122,28 @@ int main(int argc, char **argv)
 
     // showing cmds
     std::cout << "Viewer Shortcuts\n"
-              // << "\t- 'r': swicth on/off for raw skeleton display\n"
-              << "\t- 's': swicth on/off for 3D object detection bounding box display\n"
+              << "\t- 's': swicth on/off for independent object bounding box display\n"
+              << "\t- 'f': swicth on/off for fused object bounding box display\n"
               << "\t- 'p': swicth on/off for live point cloud display\n"
               << "\t- 'c': swicth on/off point cloud display with flat color\n"
+              << "\t- 'q': quit\n"
               << std::endl;
 
     sl::FusionMetrics metrics;
-    std::map<sl::CameraIdentifier, sl::Pose> poses;
+    std::map<int, sl::Transform> poses;
     std::map<sl::CameraIdentifier, sl::Mat> views;
     std::map<sl::CameraIdentifier, sl::Objects> objects;
     std::map<sl::CameraIdentifier, sl::Mat> pointClouds;
+
+    std::vector<ZedRenderData> renders;
     sl::Resolution low_res(512, 360);
+
+    // assuming the first camera is world frame,
+    // create transfomation matrix for remaining camera to first camera
+    // first camera is identity
+    std::map<int, sl::Transform> T_cam_world;
+    bool isPoseSet = false;
+    bool isTransformInit = false;
 
     // Set up a callback function for each client
     for (auto &client : clients)
@@ -120,27 +154,56 @@ int main(int argc, char **argv)
             views[id] = updatedSl;
             objects[id] = detectedObjects; });
     }
+
     while (ptr_viewer->isAvailable())
     {
+        renders.clear();
+
         // run the fusion process (which gather data from all camera, sync them and process them)
         if (ptr_fusion->process() == sl::FUSION_ERROR_CODE::SUCCESS)
         {
-            // for debug, you can retrieve the data send by each camera
+            // set the camera pose and transformation matrices
             for (auto &id : cameras)
             {
-                sl::Pose pose;
-                if (ptr_fusion->getPosition(pose, sl::REFERENCE_FRAME::WORLD, id, sl::POSITION_TYPE::RAW) == sl::POSITIONAL_TRACKING_STATE::OK)
-                    ptr_viewer->setCameraPose(id.sn, pose.pose_data);
-
-                auto state_pc = ptr_fusion->retrieveMeasure(pointClouds[id], id, sl::MEASURE::XYZBGRA, low_res);
-                if (state_pc == sl::FUSION_ERROR_CODE::SUCCESS)
-                    ptr_viewer->updateMultiCamera(id.sn, views[id], objects[id], pointClouds[id]);
+                if (!isPoseSet)
+                {
+                    // camera static, set once only
+                    sl::Pose pose;
+                    if (ptr_fusion->getPosition(pose, sl::REFERENCE_FRAME::WORLD, id, sl::POSITION_TYPE::RAW) == sl::POSITIONAL_TRACKING_STATE::OK)
+                    {
+                        ptr_viewer->setCameraPose(id.sn, pose.pose_data);
+                        poses[id.sn] = pose.pose_data;
+                    }
+                    // std::cout << "Adding camera poses " << id.sn << ", pose size = " << poses.size() << ", camera size = " << cameras.size() << std::endl;
+                    isPoseSet = poses.size() > cameras.size() - 1;
+                }
             }
 
-            // get metrics about the fusion process for monitoring purposes
-            // fusion.getProcessMetrics(metrics);
+            // render stream
+            if (!isTransformInit && isPoseSet)
+            {
+                // std::cout << "Computing relative frame transform" << std::endl;
+                T_cam_world = initCameraTransformMatrices(poses);
+                isTransformInit = true;
+            }
+
+            if (isTransformInit)
+            {
+                for (auto &id : cameras)
+                {
+                    auto state_pc = ptr_fusion->retrieveMeasure(pointClouds[id], id, sl::MEASURE::XYZBGRA, low_res);
+                    if (state_pc == sl::FUSION_ERROR_CODE::SUCCESS)
+                    {
+                        auto render = ZedRenderData(id.sn, views[id], objects[id], pointClouds[id]);
+                        renders.emplace_back(render);
+                    }
+                }
+                ptr_viewer->updateFusion(renders, T_cam_world);
+                // get metrics about the fusion process for monitoring purposes
+                // fusion.getProcessMetrics(metrics);
+            }
         }
-        std::this_thread::sleep_for(std::chrono::microseconds(16));
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 
     ptr_viewer->exit();
