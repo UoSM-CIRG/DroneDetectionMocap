@@ -47,10 +47,15 @@ int main(int argc, char **argv)
     // Defines the Coordinate system and unit
     constexpr sl::COORDINATE_SYSTEM COORDINATE_SYSTEM = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP;
     constexpr sl::UNIT UNIT = sl::UNIT::METER;
+    
     sl::InitParameters cam_params;
-    cam_params.depth_mode = sl::DEPTH_MODE::ULTRA;
-    cam_params.coordinate_units = sl::UNIT::METER;
-    cam_params.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP;
+    cam_params.camera_resolution = sl::RESOLUTION::HD720;
+    cam_params.camera_fps = 60U;
+    cam_params.depth_mode = sl::DEPTH_MODE::NEURAL;
+    cam_params.coordinate_units = UNIT;
+    cam_params.coordinate_system = COORDINATE_SYSTEM;
+    cam_params.depth_minimum_distance = 0.2f;
+    cam_params.depth_maximum_distance = 9.0f;
 
     // Read json file containing the configuration of your multicamera setup.
     auto configurations = sl::readFusionConfigurationFile(argv[1], COORDINATE_SYSTEM, UNIT);

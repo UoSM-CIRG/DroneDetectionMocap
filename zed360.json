@@ -51,7 +51,7 @@
                 "type": "INTRA_PROCESS"
             },
             "zed": {
-                "configuration": "10.100.27.205:30004",
+                "configuration": "10.100.26.232:30004",
                 "type": "STREAM"
             }
         },

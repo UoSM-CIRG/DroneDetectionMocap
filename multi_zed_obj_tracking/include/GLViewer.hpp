@@ -351,6 +351,7 @@ private:
     static void keyPressedCallback(unsigned char c, int x, int y);
     static void keyReleasedCallback(unsigned char c, int x, int y);
     static void idle();
+    std::chrono::steady_clock::time_point start_time; 
 
     bool available;
     bool drawBbox = false;

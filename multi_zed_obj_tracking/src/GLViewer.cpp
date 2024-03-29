@@ -179,6 +179,7 @@ void GLViewer::init(int argc, char **argv)
     glutCloseFunc(CloseFunc);
 
     available = true;
+    start_time = std::chrono::steady_clock::now(); // Initialize start time
 }
 
 sl::float4 newColor(float hh)
@@ -268,6 +269,20 @@ void GLViewer::updateFusion(std::vector<ZedRenderData> &renders, std::map<int, s
     std::vector<sl::float3> fused_pos_buffer;
     std::vector<sl::float3> fused_dim_buffer;
 
+    // Open file for writing
+    std::ofstream outputFile("output.log", std::ios_base::app);
+    if (!outputFile.is_open())
+    {
+        std::cerr << "Failed to open output file!" << std::endl;
+        mtx.unlock();
+        return;
+    }
+
+    // Get current timestamp in milliseconds since start
+    auto current_time = std::chrono::steady_clock::now();
+    auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time);
+    long long timestamp_ms = time_diff.count();
+
     int size = renders.size();
     for (auto &render : renders)
     {
@@ -297,11 +312,15 @@ void GLViewer::updateFusion(std::vector<ZedRenderData> &renders, std::map<int, s
                 sl::float3 aligned_pos = T_world_cam.getTranslation() + obj_pos * T_world_cam.getRotationMatrix();
 
                 // std::cout << "Original Frame position for " << render.id << " ( " << obj_pos.x << " , " << obj_pos.y << " , " << obj_pos.z << " )" << std::endl;
-                // std::cout << "Transformed position for " << render.id << " ( " << aligned_pos.x << " , " << aligned_pos.y << " , " << aligned_pos.z << " )" << std::endl;
-                auto normalized_conf = render.objs.object_list.at(0).confidence / 100;
-                fused_position += aligned_pos * normalized_conf;
-                dimension += render.objs.object_list.at(0).dimensions * normalized_conf;
-                total_confidence += normalized_conf;
+                // std::cout << render.id << ", " << aligned_pos.x << ", " << aligned_pos.y << ", " << aligned_pos.z << std::endl;
+                // Write to file          
+                outputFile << timestamp_ms << ", " << render.id << ", " << aligned_pos.x << ", " << aligned_pos.y << ", " << aligned_pos.z << std::endl;
+                // auto normalized_conf = render.objs.object_list.at(0).confidence / 100;
+                // fused_position += aligned_pos * normalized_conf;
+                // dimension += render.objs.object_list.at(0).dimensions * normalized_conf;
+                // total_confidence += normalized_conf;
+                fused_position += aligned_pos;
+                dimension += render.objs.object_list.at(0).dimensions;
                 hasDetection = true;
             }
             else
@@ -313,15 +332,17 @@ void GLViewer::updateFusion(std::vector<ZedRenderData> &renders, std::map<int, s
 
     if (hasDetection)
     {
-        fused_position = fused_position / total_confidence;
-        dimension = dimension / total_confidence;
+        //fused_position = fused_position / total_confidence;
+        //dimension = dimension / total_confidence;
+        fused_position = fused_position / size;
+        dimension = dimension / size;
         // auto now = std::chrono::system_clock::now();
         // auto time_now = std::chrono::system_clock::to_time_t(now);
         // auto time_info = std::localtime(&time_now);
         // int minutes = time_info->tm_min;
         // int seconds = time_info->tm_sec;
         // int total_seconds = minutes * 60 + seconds;
-        // std::cout << total_seconds << ", " << fused_position.x << ", " << fused_position.y << ", " << fused_position.z << std::endl;
+        // std::cout << "fused_position" << ", " << fused_position.x << ", " << fused_position.y << ", " << fused_position.z << std::endl;
         
         // use bounding box points for the render
         const sl::float4 fused_clr(1.0f, 1.0f, 1.0f, 1.0f);
