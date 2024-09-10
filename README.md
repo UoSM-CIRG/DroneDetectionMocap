@@ -1,5 +1,9 @@
 # DroneDetectionMocap
 
+### Dataset
+
+[Yolov8 Drone Detection Dataset](https://universe.roboflow.com/uosmxcirg-ddicd/dronedetection-9ep5q)
+
 ### Setup
 
 The **calibrated_zed360.json** file provides important information for setup:
