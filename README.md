@@ -34,9 +34,10 @@ Occasional glitches observed, not suitable for real-time applications.
 
 After exporting raw data, removing outlier data points, and smoothing overall plots, there is quite a decent estimation.
 
-Check the full video
+Check the demo video
 
-![How it look like](/images/test1.png)
+https://github.com/user-attachments/assets/1915f835-edbf-4227-8d89-de298e727793
+
 
 ### TODO List:
 
